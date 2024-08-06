@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -11,29 +11,25 @@ import { SelectItem } from "@/components/ui/select";
 import { Doctors } from "@/constants";
 import {
   createAppointment,
-  updateAppointment,
 } from "@/lib/actions/appointment.actions";
 import { getAppointmentSchema } from "@/lib/validation";
-import { Appointment } from "@/types/appwrite.types";
 
 import "react-datepicker/dist/react-datepicker.css";
 
 import CustomFormField, { FormFieldType } from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
 import { Form } from "../ui/form";
+import { newDate } from "react-datepicker/dist/date_utils";
 
 export const AppointmentForm = ({
   userId,
   patientId,
-  type = "create",
-  appointment,
-  setOpen,
-}: {
+  type,
+}:
+{
   userId: string;
   patientId: string;
   type: "create" | "schedule" | "cancel";
-  appointment?: Appointment;
-  setOpen?: Dispatch<SetStateAction<boolean>>;
 }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,13 +39,11 @@ export const AppointmentForm = ({
   const form = useForm<z.infer<typeof AppointmentFormValidation>>({
     resolver: zodResolver(AppointmentFormValidation),
     defaultValues: {
-      primaryPhysician: appointment ? appointment?.primaryPhysician : "",
-      schedule: appointment
-        ? new Date(appointment?.schedule!)
-        : new Date(Date.now()),
-      reason: appointment ? appointment.reason : "",
-      note: appointment?.note || "",
-      cancellationReason: appointment?.cancellationReason || "",
+      primaryPhysician: "",
+      schedule: new Date(),
+      reason: "",
+      note: "",
+      cancellationReason: "",
     },
   });
 
@@ -72,7 +66,7 @@ export const AppointmentForm = ({
 
     try {
       if (type === "create" && patientId) {
-        const appointment = {
+        const appointmentData = {
           userId,
           patient: patientId,
           primaryPhysician: values.primaryPhysician,
@@ -82,38 +76,20 @@ export const AppointmentForm = ({
           note: values.note,
         };
 
-        const newAppointment = await createAppointment(appointment);
+        const appointment = await createAppointment(appointmentData);
 
-        if (newAppointment) {
+        if (appointment) {
           form.reset();
           router.push(
-            `/patients/${userId}/new-appointment/success?appointmentId=${newAppointment.$id}`
+            `/patients/${userId}/new-appointment/success?appointmentId=${appointment.id}`
           );
-        }
-      } else {
-        const appointmentToUpdate = {
-          userId,
-          appointmentId: appointment?.$id!,
-          appointment: {
-            primaryPhysician: values.primaryPhysician,
-            schedule: new Date(values.schedule),
-            status: status as Status,
-            cancellationReason: values.cancellationReason,
-          },
-          type,
-        };
-
-        const updatedAppointment = await updateAppointment(appointmentToUpdate);
-
-        if (updatedAppointment) {
-          setOpen && setOpen(false);
-          form.reset();
         }
       }
     } catch (error) {
-      console.log(error);
+      console.error("An error occurred while creating the appointment:", error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   let buttonLabel;
@@ -125,7 +101,7 @@ export const AppointmentForm = ({
       buttonLabel = "Schedule Appointment";
       break;
     default:
-      buttonLabel = "Create Apppointment";
+      buttonLabel = "Create Appointment";
   }
 
   return (
@@ -193,7 +169,7 @@ export const AppointmentForm = ({
                 control={form.control}
                 name="note"
                 label="Comments/notes"
-                placeholder="Prefer afternoon appointments, if possible"
+                placeholder="Enter notes"
                 disabled={type === "schedule"}
               />
             </div>
