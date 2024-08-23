@@ -6,19 +6,16 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { Form, FormControl } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { createUser, registerPatient } from "@/lib/actions/patient.actions";
 import { PatientFormValidation, UserFormValidation } from "@/lib/validation";
 
 import "react-phone-number-input/style.css";
 import CustomFormField, { FormFieldType } from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
-import { RadioGroup, RadioGroupItem } from "@radix-ui/react-radio-group";
-import { Doctors, GenderOptions, IdentificationTypes, PatientFormDefaultValues } from "@/constants";
-import { Label } from "../ui/label";
 import { SelectItem } from "@radix-ui/react-select";
 import Image from "next/image";
-import FileUploader from "../FileUploader";
+import { Doctors, GenderOptions, IdentificationTypes, PatientFormDefaultValues } from "@/constants";
 
 export const RegisterForm = ({ user }: { user: User }) => {
   const router = useRouter();
@@ -37,31 +34,23 @@ export const RegisterForm = ({ user }: { user: User }) => {
   const onSubmit = async (values: z.infer<typeof PatientFormValidation>) => {
     setIsLoading(true);
 
-    //esto es para el archivo foto, intentar esto en inversiones cuyanas
-    let formData;
-    if(values.identificationDocument && values.identificationDocument.length > 0) {
-      const blobFile = new Blob([values.identificationDocument[0]], {type:values.identificationDocument[0].type})
-
-      formData = new formData();
-      formData.append('blobFile', blobFile);
-      formData.append('fileName', values.identificationDocument[0].name);
-    }
-
     try {
       const patientData = {
         ...values,
         userId: user.$id,
         birthDate: new Date(values.birthDate),
-        IdentificationDocument: formData,
-      }
+      };
 
-      const patient = await registerPatient(patientData);
-      if(patient) router.push(`/patients/${user.$id}/new-appointment`)
+      // Registrar al paciente y manejar la respuesta
+      await registerPatient(patientData);
+
+      // Redirigir después del registro exitoso
+      router.push(`/patients/${user.$id}/new-appointment`);
     } catch (error) {
       console.log(error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -119,7 +108,6 @@ export const RegisterForm = ({ user }: { user: User }) => {
             iconSrc="/assets/icons/email.svg"
             iconAlt="email"
           />
-          
 
           <CustomFormField
             fieldType={FormFieldType.SELECT}
@@ -170,109 +158,72 @@ export const RegisterForm = ({ user }: { user: User }) => {
             placeholder="(11) 1123-4567"
           />
         </div>
+
         <section className="mb-12 space-y-6">
           <div className="space-y-1 mb-9">
             <h2 className="sub-header">Medical Information</h2>
           </div>
         </section>
-        
+
         <CustomFormField
-              fieldType={FormFieldType.SELECT}
-              control={form.control}
-              name="primaryPhysician"
-              label="Primary Physician"
-              placeholder="Select your physician"
-            >
-              {Doctors.map((doctor, i) => (
-                <SelectItem key={doctor.name + i} value={doctor.name}>
-                  <div className="flex cursor-pointer items-center gap-2">
-                    <Image
-                      src={doctor.image}
-                      width={32}
-                      height={32}
-                      alt="doctor"
-                      className="rounded-full border border-dark-500"
-                    />
-                    <p>{doctor.name}</p>
-                  </div>
-                </SelectItem>
-              ))}
-            </CustomFormField>
-        {/* INSURANCE & POLICY NUMBER */}
+          fieldType={FormFieldType.SELECT}
+          control={form.control}
+          name="primaryPhysician"
+          label="Primary Physician"
+          placeholder="Select your physician"
+        >
+          {Doctors.map((doctor, i) => (
+            <SelectItem key={doctor.name + i} value={doctor.name}>
+              <div className="flex cursor-pointer items-center gap-2">
+                <Image
+                  src={doctor.image}
+                  width={32}
+                  height={32}
+                  alt="doctor"
+                  className="rounded-full border border-dark-500"
+                />
+                <p>{doctor.name}</p>
+              </div>
+            </SelectItem>
+          ))}
+        </CustomFormField>
+
         <div className="flex flex-col gap-6 xl:flex-row">
-            <CustomFormField
-              fieldType={FormFieldType.INPUT}
-              control={form.control}
-              name="insuranceProvider"
-              label="Insurance provider"
-              placeholder="BlueCross BlueShield"
-            />
-
-            <CustomFormField
-              fieldType={FormFieldType.INPUT}
-              control={form.control}
-              name="insurancePolicyNumber"
-              label="Insurance policy number"
-              placeholder="ABC123456789"
-            />
-          </div>
-          {/* FAMILY MEDICATION & PAST MEDICATIONS */}
-          <div className="flex flex-col gap-6 xl:flex-row">
-            <CustomFormField
-              fieldType={FormFieldType.TEXTAREA}
-              control={form.control}
-              name="familyMedicalHistory"
-              label=" Family medical history (if relevant)"
-              placeholder="Mother had brain cancer, Father has hypertension"
-            />
-
-            <CustomFormField
-              fieldType={FormFieldType.TEXTAREA}
-              control={form.control}
-              name="pastMedicalHistory"
-              label="Past medical history"
-              placeholder="Appendectomy in 2015, Asthma diagnosis in childhood"
-            />
-          </div>
-          <section className="space-y-6">
-          <div className="mb-9 space-y-1">
-            <h2 className="sub-header">Identification and Verfication</h2>
-          </div>
-
           <CustomFormField
-            fieldType={FormFieldType.SELECT}
+            fieldType={FormFieldType.INPUT}
             control={form.control}
-            name="identificationType"
-            label="Identification Type"
-            placeholder="Select identification type"
-          >
-            {IdentificationTypes.map((type, i) => (
-              <SelectItem key={type + i} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </CustomFormField>
+            name="insuranceProvider"
+            label="Insurance provider"
+            placeholder="BlueCross BlueShield"
+          />
 
           <CustomFormField
             fieldType={FormFieldType.INPUT}
             control={form.control}
-            name="identificationNumber"
-            label="Identification Number"
-            placeholder="123456789"
+            name="insurancePolicyNumber"
+            label="Insurance policy number"
+            placeholder="ABC123456789"
+          />
+        </div>
+
+        <div className="flex flex-col gap-6 xl:flex-row">
+          <CustomFormField
+            fieldType={FormFieldType.TEXTAREA}
+            control={form.control}
+            name="familyMedicalHistory"
+            label="Family medical history (if relevant)"
+            placeholder="Mother had brain cancer, Father has hypertension"
           />
 
           <CustomFormField
-            fieldType={FormFieldType.SKELETON}
+            fieldType={FormFieldType.TEXTAREA}
             control={form.control}
-            name="identificationDocument"
-            label="Scanned Copy of Identification Document"
-            renderSkeleton={(field) => (
-              <FormControl>
-                <FileUploader files={field.value} onChange={field.onChange} />
-              </FormControl>
-            )}
+            name="pastMedicalHistory"
+            label="Past medical history"
+            placeholder="Appendectomy in 2015, Asthma diagnosis in childhood"
           />
-        </section>
+        </div>
+
         <section className="space-y-6">
           <div className="mb-9 space-y-1">
             <h2 className="sub-header">Consent and Privacy</h2>
@@ -301,7 +252,6 @@ export const RegisterForm = ({ user }: { user: User }) => {
             privacy policy"
           />
         </section>
-        <div className="flex flex--col gap-6 xl:flex-row"></div>
 
         <SubmitButton isLoading={isLoading}>Get Started</SubmitButton>
       </form>
