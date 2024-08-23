@@ -44,15 +44,16 @@ export const createUser = async (user: CreateUserParams) => {
 export const getUser = async (userId: string) => {
   try {
     const user = await users.get(userId);
-
-    // return parseStringify(user);
+    return user; // Asegúrate de devolver el objeto user
   } catch (error) {
     console.error(
       "An error occurred while retrieving the user details:",
       error
     );
+    throw error; // Opcional: puedes lanzar el error para manejarlo en otro lugar
   }
 };
+
 
 
 // REGISTER PATIENT
